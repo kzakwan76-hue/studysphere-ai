@@ -1,0 +1,12 @@
+[tool.pytest.ini_options]
+pythonpath = ["backend"]
+testpaths = ["backend/tests"]
+
+[tool.ruff]
+line-length = 100
+src = ["backend"]
+extend-exclude = ["backend/migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F"]   # pycodestyle errors and pyflakes (unused imports, undefined names)
+ignore = ["E501"]
