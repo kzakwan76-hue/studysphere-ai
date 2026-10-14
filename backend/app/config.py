@@ -19,6 +19,18 @@ class Settings(BaseSettings):
     access_token_minutes: int = Field(default=60, ge=1, le=1440)
     database_url: str = f"sqlite:///{(STORAGE_DIR / 'studysphere.db').as_posix()}"
 
+    # Uploaded documents
+    uploads_dir: Path = STORAGE_DIR / "uploads"
+    max_upload_mb: int = Field(default=10, ge=1, le=50)
+    max_documents_per_user: int = Field(default=50, ge=1)
+    max_pdf_pages: int = Field(default=300, ge=1)
+    max_extracted_chars: int = Field(default=2_000_000, ge=1_000)
+
+    # Login throttling
+    login_max_failures: int = Field(default=5, ge=1)  # per (email, IP) pair inside the window
+    login_max_failures_per_ip: int = Field(default=20, ge=1)  # per IP across all emails
+    login_window_minutes: int = Field(default=15, ge=1)
+
 
 @lru_cache
 def get_settings() -> Settings:
