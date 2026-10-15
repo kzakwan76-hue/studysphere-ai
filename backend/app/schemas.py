@@ -45,3 +45,20 @@ class ChunkOut(BaseModel):
     page_number: int
     position: int
     text: str
+
+
+class SearchHitOut(BaseModel):
+    chunk_id: int
+    document_id: int
+    filename: str
+    page_number: int
+    score: float
+    coverage: float
+    matched_terms: list[str]
+    text: str
+
+
+class SearchResponse(BaseModel):
+    query: str
+    terms: list[str]  # the words actually searched for, after filler words were removed
+    results: list[SearchHitOut]
