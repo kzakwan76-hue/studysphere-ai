@@ -20,7 +20,9 @@ def share_at_least(values: list[float], threshold: float) -> float:
 
 def main() -> None:
     corpus = load_corpus(ROOT / "sample_docs")
-    questions = load_questions(ROOT / "eval" / "retrieval_questions.json")
+    questions_path = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "eval" / "retrieval_questions.json"
+    questions = load_questions(questions_path)
+    print(f"Question set: {questions_path.name}")
     report = evaluate(questions, corpus)
 
     print(f"Corpus: {len({chunk.filename for chunk in corpus})} documents, {len(corpus)} chunks")

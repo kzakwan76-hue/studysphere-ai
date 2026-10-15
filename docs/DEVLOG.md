@@ -27,3 +27,9 @@
 **Limitations**
 - Synthetic corpus of 5 short documents with questions written by me, so results are optimistic.
 - Keyword matching cannot match different words with the same meaning (synonyms, "halving" vs "halves").
+
+**Results** (`python scripts\eval_retrieval.py`; easy set: 19 answerable + 7 unanswerable questions, 5 documents, 10 chunks)
+- hit@1 = hit@3 = hit@5 = 1.00, MRR = 1.00. The corpus is tiny (random guessing would get about 10% at rank 1) and the questions share vocabulary with the documents, so this is a smoke test, not a quality claim.
+- Coverage of the top result: a threshold of 0.6 keeps 18 of 19 answerable questions (0.95) and none of the 7 unanswerable ones. At 0.5 the same 18 are kept but the Dijkstra question (0.50) slips through, because it shares "time", "complexity" and "algorithm" with the sorting notes.
+- Caution: 0 of 7 wrongly kept is a small sample (the true rate could plausibly be near 40%), and a threshold chosen on this set has not been validated on another. Coverage alone is not enough; Milestone 4 adds model-side refusal and citation checks.
+- Hard set (paraphrased questions and topic-related unanswerable ones): (add after running it)

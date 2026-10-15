@@ -1,0 +1,20 @@
+[
+  {"question": "Roughly how many steps does it take to locate an entry among a million ordered ones?", "file": "binary_search.md", "evidence": "about 20 comparisons"},
+  {"question": "What goes wrong when you add the two bounds and divide by two to get the midpoint?", "file": "binary_search.md", "evidence": "can overflow"},
+  {"question": "How do two machines agree to start talking over TCP?", "file": "tcp_handshake.md", "evidence": "three-way handshake"},
+  {"question": "When does the sender retransmit?", "file": "tcp_handshake.md", "evidence": "sends the data again"},
+  {"question": "Which part of a plant cell does the sugar making?", "file": "photosynthesis.md", "evidence": "chloroplasts"},
+  {"question": "What colour of light do leaves not use?", "file": "photosynthesis.md", "evidence": "reflects green light"},
+  {"question": "What can slow down how fast a plant makes food?", "file": "photosynthesis.md", "evidence": "shortest supply"},
+  {"question": "Which method uses additional memory while combining sorted pieces?", "file": "sorting_algorithms.md", "evidence": "needs O(n) extra space"},
+  {"question": "Why can quick sort sometimes be slow?", "file": "sorting_algorithms.md", "evidence": "poor pivot choice"},
+  {"question": "How do you combine resistances when components are connected one after another?", "file": "ohms_law.md", "evidence": "sum of the individual resistances"},
+  {"question": "Why does a bulb with a glowing wire break the V = I x R rule?", "file": "ohms_law.md", "evidence": "its resistance increases"},
+  {"question": "How much extra memory does the loop version need?", "file": "binary_search.md", "evidence": "O(1) for the iterative version"},
+  {"question": "What is the time complexity of searching in a hash table?", "file": null, "evidence": null},
+  {"question": "How does a TCP connection handle congestion?", "file": null, "evidence": null},
+  {"question": "What is the role of the mitochondria in making energy?", "file": null, "evidence": null},
+  {"question": "How do you sort a list of strings alphabetically in Python?", "file": null, "evidence": null},
+  {"question": "What is the voltage of a standard household mains supply?", "file": null, "evidence": null},
+  {"question": "Why does binary search fail on a linked list?", "file": null, "evidence": null}
+]
