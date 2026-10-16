@@ -22,14 +22,31 @@ export function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
 
-export interface DocumentItem {
+export interface SubjectItem {
+  id: number;
+  name: string;
+  document_count: number;
+  chunk_count: number;
+  created_at: string;
+}
+
+export interface DocumentSummary {
   id: number;
   filename: string;
   kind: string;
   size_bytes: number;
   page_count: number;
   chunk_count: number;
+  subject_id: number | null;
   created_at: string;
+}
+
+export interface DashboardData {
+  document_count: number;
+  chunk_count: number;
+  unassigned_document_count: number;
+  subjects: SubjectItem[];
+  documents: DocumentSummary[];
 }
 
 export interface Source {
@@ -83,13 +100,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await response.json()) as T;
 }
 
+const jsonHeaders = { "Content-Type": "application/json" };
+
 export const api = {
   async register(email: string, password: string): Promise<void> {
-    await request("/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    await request("/auth/register", { method: "POST", headers: jsonHeaders, body: JSON.stringify({ email, password }) });
   },
 
   async login(email: string, password: string): Promise<void> {
@@ -98,20 +113,33 @@ export const api = {
     setToken(data.access_token);
   },
 
-  listDocuments: () => request<DocumentItem[]>("/documents"),
+  dashboard: () => request<DashboardData>("/dashboard"),
 
-  uploadDocument(file: File): Promise<DocumentItem> {
+  listSubjects: () => request<SubjectItem[]>("/subjects"),
+
+  createSubject: (name: string) =>
+    request<SubjectItem>("/subjects", { method: "POST", headers: jsonHeaders, body: JSON.stringify({ name }) }),
+
+  deleteSubject: (id: number) => request<void>(`/subjects/${id}`, { method: "DELETE" }),
+
+  assignDocument: (subjectId: number, documentId: number) =>
+    request<void>(`/subjects/${subjectId}/documents/${documentId}`, { method: "PUT" }),
+
+  unassignDocument: (subjectId: number, documentId: number) =>
+    request<void>(`/subjects/${subjectId}/documents/${documentId}`, { method: "DELETE" }),
+
+  async uploadDocument(file: File): Promise<void> {
     const form = new FormData();
     form.append("file", file);
-    return request<DocumentItem>("/documents", { method: "POST", body: form });
+    await request<unknown>("/documents", { method: "POST", body: form });
   },
 
   deleteDocument: (id: number) => request<void>(`/documents/${id}`, { method: "DELETE" }),
 
-  ask: (question: string) =>
+  ask: (question: string, subjectId?: number) =>
     request<AnswerResponse>("/ask", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
+      headers: jsonHeaders,
+      body: JSON.stringify({ question, subject_id: subjectId ?? null }),
     }),
 };

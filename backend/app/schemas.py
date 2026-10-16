@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 
 class UserCreate(BaseModel):
@@ -67,6 +67,13 @@ class SearchResponse(BaseModel):
 class AskRequest(BaseModel):
     question: str = Field(min_length=3, max_length=500)
     document_id: int | None = None  # restrict the answer to one of your documents
+    subject_id: int | None = None  # or to one of your subjects
+
+    @model_validator(mode="after")
+    def only_one_scope(self) -> "AskRequest":
+        if self.document_id is not None and self.subject_id is not None:
+            raise ValueError("Choose a document or a subject, not both.")
+        return self
 
 
 class SourceOut(BaseModel):
@@ -87,3 +94,42 @@ class AnswerResponse(BaseModel):
     warnings: list[str]
     support: float | None  # heuristic: share of the answer's words found in the cited passages
     provider: str | None
+
+
+class SubjectCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+
+    @field_validator("name")
+    @classmethod
+    def tidy_name(cls, value: str) -> str:
+        value = " ".join(value.split())  # trim and collapse repeated spaces
+        if not value:
+            raise ValueError("The name cannot be empty.")
+        return value
+
+
+class SubjectOut(BaseModel):
+    id: int
+    name: str
+    document_count: int
+    chunk_count: int
+    created_at: datetime
+
+
+class DocumentSummary(BaseModel):
+    id: int
+    filename: str
+    kind: str
+    size_bytes: int
+    page_count: int
+    chunk_count: int
+    subject_id: int | None
+    created_at: datetime
+
+
+class DashboardOut(BaseModel):
+    document_count: int
+    chunk_count: int
+    unassigned_document_count: int
+    subjects: list[SubjectOut]
+    documents: list[DocumentSummary]

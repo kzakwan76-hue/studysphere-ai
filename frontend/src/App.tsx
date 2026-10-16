@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { getToken, setToken } from "./api";
 import AuthForm from "./AuthForm";
-import Documents from "./Documents";
+import Dashboard from "./Dashboard";
 import Ask from "./Ask";
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(() => getToken() !== null);
-  const [tab, setTab] = useState<"documents" | "ask">("documents");
+  const [tab, setTab] = useState<"dashboard" | "ask">("dashboard");
 
   useEffect(() => {
     const onExpired = () => setLoggedIn(false);
@@ -32,7 +32,7 @@ export default function App() {
             </button>
           </header>
           <nav className="flex gap-2">
-            {(["documents", "ask"] as const).map((name) => (
+            {(["dashboard", "ask"] as const).map((name) => (
               <button
                 key={name}
                 onClick={() => setTab(name)}
@@ -44,7 +44,7 @@ export default function App() {
               </button>
             ))}
           </nav>
-          {tab === "documents" ? <Documents /> : <Ask />}
+          {tab === "dashboard" ? <Dashboard /> : <Ask />}
         </div>
       )}
     </div>

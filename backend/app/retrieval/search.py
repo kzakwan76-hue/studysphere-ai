@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Chunk, Document
+from app.models import Chunk, Document, SubjectDocument
 from app.retrieval.ranking import rank_passages
 
 
@@ -22,7 +22,12 @@ class SearchHit:
 
 
 def search_user_chunks(
-    db: Session, user_id: int, query: str, document_id: int | None = None, limit: int = 5
+    db: Session,
+    user_id: int,
+    query: str,
+    document_id: int | None = None,
+    limit: int = 5,
+    subject_id: int | None = None,
 ) -> tuple[list[str], list[SearchHit]]:
     """Rank the passages of this user's documents. The index is rebuilt per search (fine for study notes)."""
     statement = (
@@ -33,6 +38,10 @@ def search_user_chunks(
     )
     if document_id is not None:
         statement = statement.where(Document.id == document_id)
+    if subject_id is not None:
+        statement = statement.join(SubjectDocument, SubjectDocument.document_id == Document.id).where(
+            SubjectDocument.subject_id == subject_id
+        )
     rows = db.execute(statement).all()
 
     terms, ranked = rank_passages(query, [chunk.text for chunk, _filename in rows], limit)

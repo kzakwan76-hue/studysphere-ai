@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { api, messageOf } from "./api";
-import type { AnswerResponse } from "./api";
+import type { AnswerResponse, SubjectItem } from "./api";
 
 const STATUS_STYLE: Record<string, string> = {
   answered: "bg-green-100 text-green-800",
@@ -13,16 +13,25 @@ const STATUS_STYLE: Record<string, string> = {
 
 export default function Ask() {
   const [question, setQuestion] = useState("");
+  const [subjects, setSubjects] = useState<SubjectItem[]>([]);
+  const [scope, setScope] = useState("");
   const [result, setResult] = useState<AnswerResponse | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api
+      .listSubjects()
+      .then(setSubjects)
+      .catch(() => setSubjects([]));
+  }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError("");
     try {
-      setResult(await api.ask(question));
+      setResult(await api.ask(question, scope === "" ? undefined : Number(scope)));
     } catch (e) {
       setResult(null);
       setError(messageOf(e));
@@ -33,23 +42,37 @@ export default function Ask() {
 
   return (
     <section className="space-y-4">
-      <form onSubmit={submit} className="flex gap-2">
-        <input
-          required
-          minLength={3}
-          maxLength={500}
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask a question about your documents"
-          className="flex-1 rounded border border-gray-300 p-2"
-        />
-        <button
-          type="submit"
-          disabled={busy}
-          className="rounded bg-indigo-600 px-4 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+      <form onSubmit={submit} className="space-y-2">
+        <select
+          value={scope}
+          onChange={(e) => setScope(e.target.value)}
+          className="rounded border border-gray-300 p-2 text-sm"
         >
-          {busy ? "Thinking..." : "Ask"}
-        </button>
+          <option value="">All my documents</option>
+          {subjects.map((subject) => (
+            <option key={subject.id} value={subject.id}>
+              Subject: {subject.name}
+            </option>
+          ))}
+        </select>
+        <div className="flex gap-2">
+          <input
+            required
+            minLength={3}
+            maxLength={500}
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Ask a question about your documents"
+            className="flex-1 rounded border border-gray-300 p-2"
+          />
+          <button
+            type="submit"
+            disabled={busy}
+            className="rounded bg-indigo-600 px-4 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {busy ? "Thinking..." : "Ask"}
+          </button>
+        </div>
       </form>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

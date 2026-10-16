@@ -63,3 +63,22 @@ class LoginFailure(Base):
     email: Mapped[str] = mapped_column(String(255), index=True)  # whatever was typed, even if no such account
     ip: Mapped[str] = mapped_column(String(45), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+
+
+class Subject(Base):
+    __tablename__ = "subjects"
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_subjects_user_id_name"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class SubjectDocument(Base):
+    """Puts a document in a subject. document_id is the primary key, so a document is in at most one subject."""
+
+    __tablename__ = "subject_documents"
+
+    document_id: Mapped[int] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), primary_key=True)
+    subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id", ondelete="CASCADE"), index=True)

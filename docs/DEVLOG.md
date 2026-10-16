@@ -68,3 +68,18 @@ Unanswerable and refused (correct):      6/7
 **Limitations**
 - No automated frontend tests yet.
 - No subject organisation, chat history or document filter in the UI yet.
+
+## Milestone 6: subjects and dashboard
+**Built:** subjects (create, list, delete); assigning documents to a subject; GET /dashboard; /ask scoped to a subject; frontend Dashboard tab (stats, subjects, upload, assign) and a subject picker on the Ask tab.
+
+**Decisions**
+- Subject membership lives in a new subject_documents table instead of a column on documents. The migration only creates tables, so the existing documents and chunks are never rebuilt (rebuilding a SQLite table with foreign keys on can cascade-delete rows).
+- A document is in at most one subject (document_id is the primary key). Deleting a subject keeps its documents.
+- Every subject query is scoped to the logged-in user, and someone else's subject or document looks the same as a missing one (404).
+- /ask accepts a document or a subject, not both.
+- The migration was written by hand to follow login_failures (66eaa1e25439).
+
+**Limitations**
+- Subject names are compared case-insensitively with SQL lower(), which is reliable for English letters only.
+- The dashboard returns all documents in one response (limited to 50 per user by the upload cap).
+- No automated frontend tests yet.

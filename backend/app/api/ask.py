@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.answering.service import PASSAGES_FOR_ANSWER, AnswerResult, answer_from_passages
 from app.api.documents import get_owned_document
+from app.api.subjects import get_owned_subject
 from app.config import get_settings
 from app.deps import CurrentUser, DbSession
 from app.llm.base import LLMProvider, ProviderError
@@ -79,9 +80,13 @@ def ask(
         )
     if payload.document_id is not None:
         get_owned_document(db, current_user, payload.document_id)  # 404 unless it is yours
+    if payload.subject_id is not None:
+        get_owned_subject(db, current_user, payload.subject_id)  # 404 unless it is yours
 
     settings = get_settings()
-    _terms, hits = search_user_chunks(db, current_user.id, payload.question, payload.document_id, PASSAGES_FOR_ANSWER)
+    _terms, hits = search_user_chunks(
+        db, current_user.id, payload.question, payload.document_id, PASSAGES_FOR_ANSWER, payload.subject_id
+    )
     result = answer_from_passages(
         payload.question, hits, provider, settings.answer_min_coverage, settings.llm_max_answer_tokens
     )
