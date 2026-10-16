@@ -16,6 +16,8 @@ os.environ["UPLOADS_DIR"] = str(_TEMP_DIR / "uploads")
 os.environ["SECRET_KEY"] = "test-only-secret-key-do-not-use-anywhere-else-0123456789"
 os.environ["MAX_UPLOAD_MB"] = "1"  # small limits so the limit tests stay fast
 os.environ["MAX_DOCUMENTS_PER_USER"] = "5"
+os.environ["LLM_PROVIDER"] = "none"  # tests never call a real AI provider
+os.environ["ASK_LIMIT_PER_HOUR"] = "1000"
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 
@@ -55,3 +57,26 @@ def make_pdf():
         return buffer.getvalue()
 
     return build
+
+
+class FakeProvider:
+    """A scripted AI provider: returns a fixed reply (or raises), and records what it was asked."""
+
+    name = "fake"
+
+    def __init__(self, reply: str = "", error: Exception | None = None) -> None:
+        self.reply = reply
+        self.error = error
+        self.calls: list[tuple[str, str, int]] = []
+
+    def generate(self, system: str, user: str, max_tokens: int) -> str:
+        self.calls.append((system, user, max_tokens))
+        if self.error is not None:
+            raise self.error
+        return self.reply
+
+
+@pytest.fixture
+def fake_provider():
+    """The FakeProvider class: call it as fake_provider(reply="...")."""
+    return FakeProvider

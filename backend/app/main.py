@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from sqlalchemy import inspect
 
-from app.api import auth, documents, search
+from app.api import ask, auth, documents, search
 from app.database import engine
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s [%(name)s] %(message)s")
@@ -21,10 +21,11 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-app = FastAPI(title="StudySphere AI", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="StudySphere AI", version="0.4.0", lifespan=lifespan)
 app.include_router(auth.router)
 app.include_router(documents.router)
 app.include_router(search.router)
+app.include_router(ask.router)
 
 
 @app.get("/health")

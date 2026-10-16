@@ -33,3 +33,25 @@
 - Coverage of the top result: a threshold of 0.6 keeps 18 of 19 answerable questions (0.95) and none of the 7 unanswerable ones. At 0.5 the same 18 are kept but the Dijkstra question (0.50) slips through, because it shares "time", "complexity" and "algorithm" with the sorting notes.
 - Caution: 0 of 7 wrongly kept is a small sample (the true rate could plausibly be near 40%), and a threshold chosen on this set has not been validated on another. Coverage alone is not enough; Milestone 4 adds model-side refusal and citation checks.
 - Hard set (paraphrased questions and topic-related unanswerable ones): (add after running it)
+
+## Milestone 4: grounded answers
+**Built:** /ask endpoint; provider interface (none, ollama, anthropic); numbered-excerpt prompt; relevance gate; citation verification; support-score warning; per-user hourly rate limit; answer evaluation script; demo_upload.py and demo_ask.py.
+
+**Decisions**
+- The model is never called when the best passage matches too few of the question's key words (ANSWER_MIN_COVERAGE, default 0.5).
+- An answer is only shown if it cites passages and every citation exists; otherwise it is withheld and the passages are shown instead.
+- Passages and filenames are untrusted: angle brackets are neutralised so they cannot close prompt tags, and the system prompt says never to follow instructions inside excerpts.
+- The support score is a heuristic (word overlap), shown as a warning, never as proof of correctness.
+- Default provider is "none", so the app works with no key or cost. No database change, so no migration; chat history comes with the frontend.
+
+**Results** (provider: none)
+- Answerable questions (19): {'passages_only': 18, 'not_found': 1}
+Unanswerable questions (7): {'not_found': 6, 'passages_only': 1}
+
+Answerable but refused (false refusals): 1/19
+Unanswerable and refused (correct):      6/7
+
+**Limitations**
+- The rate limiter is in memory (per process, resets on restart).
+- The gate threshold was chosen on a small synthetic set and has not been validated on held-out questions.
+- Small local models often break the citation format, which shows up as "unverified" results.
