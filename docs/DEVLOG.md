@@ -44,9 +44,26 @@
 - The support score is a heuristic (word overlap), shown as a warning, never as proof of correctness.
 - Default provider is "none", so the app works with no key or cost. No database change, so no migration; chat history comes with the frontend.
 
-**Results** (provider: none)
-- Answerable questions (19): {'passages_only': 18, 'not_found': 1}
-Unanswerable questions (7): {'not_found': 6, 'passages_only': 1}
+**Results** (provider: ollama, model: llama3.2, temperature 0, min coverage 0.5, single run per set)
+
+| | Default set (`retrieval_questions.json`) | Hard set (`retrieval_questions_hard.json`) |
+|---|---|---|
+| Answerable questions | 19 | 12 |
+| Answered | 18 | 4 |
+| False refusals (answerable but refused) | 1/19 | 8/12 |
+| Answered with the expected passage cited | 17/19 | 4/12 |
+| Unanswerable questions | 7 | 6 |
+| Correctly refused | 7/7 | 4/6 |
+| Unanswerable but answered anyway | 0/7 | 2/6 |
+
+**Findings**
+- On the default set the pipeline behaved as designed: no unanswerable question was answered, and 17 of 19 answerable questions got an answer citing the expected passage. One answered question did not cite the expected passage.
+- No `unverified` results appeared in either run, so llama3.2 followed the citation format on these question sets.
+- On the hard set the pipeline performed much worse: 8 of 12 answerable questions were refused, and 2 of 6 unanswerable questions were answered anyway. When it did answer an answerable question, the right passage was cited (4/4).
+- The evaluation script reports both the coverage gate and the model's INSUFFICIENT_INFORMATION reply as `not_found`, so these results do not show which one caused the 8 false refusals. Separating them is the next diagnostic step.
+- The 2 unanswerable questions that were answered anyway mean a passage passed the relevance gate and the model produced a cited answer. The citation check only proves a cited passage exists, not that it answers the question.
+- Both sets are small (26 and 18 questions), so one question changes the percentages noticeably. These are single runs and should be treated as indicative, not as precise rates.
+
 
 Answerable but refused (false refusals): 1/19
 Unanswerable and refused (correct):      6/7
@@ -55,6 +72,7 @@ Unanswerable and refused (correct):      6/7
 - The rate limiter is in memory (per process, resets on restart).
 - The gate threshold was chosen on a small synthetic set and has not been validated on held-out questions.
 - Small local models often break the citation format, which shows up as "unverified" results.
+- The gate threshold (0.5) was tuned on the default question set, and the hard set shows it does not generalise well. Evaluation results come from small question sets and single runs.
 
 ## Milestone 5: frontend
 **Built:** Vite + React + TypeScript + Tailwind app with registration/login, document upload/list/delete, and an Ask page that shows the status, answer, warnings and numbered sources.
