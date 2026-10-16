@@ -55,3 +55,16 @@ Unanswerable and refused (correct):      6/7
 - The rate limiter is in memory (per process, resets on restart).
 - The gate threshold was chosen on a small synthetic set and has not been validated on held-out questions.
 - Small local models often break the citation format, which shows up as "unverified" results.
+
+## Milestone 5: frontend
+**Built:** Vite + React + TypeScript + Tailwind app with registration/login, document upload/list/delete, and an Ask page that shows the status, answer, warnings and numbered sources.
+
+**Decisions**
+- The Vite dev server proxies /api to FastAPI, so the backend needed no CORS changes.
+- The login token is stored in localStorage (simple, but readable by any script on the page; fine for local development, to be revisited before deployment).
+- Answers and passages are rendered as plain text only; React escapes them, and dangerouslySetInnerHTML is never used.
+- An expired session (401) logs the person out automatically.
+
+**Limitations**
+- No automated frontend tests yet.
+- No subject organisation, chat history or document filter in the UI yet.
