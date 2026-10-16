@@ -4,6 +4,9 @@ Run from the project root:  python scripts\\eval_answers.py [question_file.json]
 
 Uses the provider set in .env (LLM_PROVIDER). With "none" it can only show which questions pass the
 relevance gate. With "ollama" or "anthropic" it measures real answers.
+
+Besides the totals it explains every failure: was the expected passage retrieved, did the relevance
+gate refuse, or did the model refuse? It also shows how the gate would behave at other thresholds.
 """
 
 import sys
@@ -20,9 +23,20 @@ from app.retrieval.evaluation import load_corpus, load_questions  # noqa: E402
 from app.retrieval.ranking import rank_passages  # noqa: E402
 from app.retrieval.search import SearchHit  # noqa: E402
 
+THRESHOLDS = (0.2, 0.3, 0.4, 0.5, 0.6, 0.7)
+
 
 def squash(text: str) -> str:
     return " ".join(text.lower().split())
+
+
+def is_expected(hit: SearchHit, expected_file: str, evidence: str | None) -> bool:
+    """True when this passage is from the expected file and contains the expected evidence text."""
+    return hit.filename == expected_file and squash(evidence or "") in squash(hit.text)
+
+
+def shorten(text: str, limit: int = 70) -> str:
+    return text if len(text) <= limit else text[: limit - 3] + "..."
 
 
 def main() -> None:
@@ -39,7 +53,13 @@ def main() -> None:
 
     answerable: Counter[str] = Counter()
     unanswerable: Counter[str] = Counter()
+    refusal_reasons: Counter[str] = Counter()  # why answerable questions were refused: "gate" or "model"
+    refused_but_retrieved = 0
     correct = 0
+    problems: list[str] = []
+    answerable_coverage: list[float] = []
+    unanswerable_coverage: list[float] = []
+
     for item in questions:
         _terms, ranked = rank_passages(item.question, texts, limit=PASSAGES_FOR_ANSWER)
         hits = [
@@ -51,20 +71,41 @@ def main() -> None:
             )
             for passage in ranked
         ]
+        best = max((hit.coverage for hit in hits), default=0.0)
+        gate_open = bool(hits) and best >= settings.answer_min_coverage
         result = answer_from_passages(
             item.question, hits, provider, settings.answer_min_coverage, settings.llm_max_answer_tokens
         )
+        question = shorten(item.question)
+
         if item.expected_file is None:
             unanswerable[result.status] += 1
+            unanswerable_coverage.append(best)
+            if result.status in ("answered", "passages_only"):
+                problems.append(f"NOT IN DOCS BUT {result.status.upper():<8} coverage={best:.2f}  {question}")
             continue
+
         answerable[result.status] += 1
-        if result.status == "answered":
+        answerable_coverage.append(best)
+        retrieved = any(is_expected(hit, item.expected_file, item.evidence) for hit in hits)
+        retrieved_text = "yes" if retrieved else "no"
+        if result.status == "not_found":
+            reason = "gate" if not gate_open else "model"
+            refusal_reasons[reason] += 1
+            refused_but_retrieved += int(retrieved)
+            problems.append(
+                f"FALSE REFUSAL by {reason:<5} coverage={best:.2f} expected passage retrieved={retrieved_text}  {question}"
+            )
+        elif result.status == "answered":
             cited = [result.passages[number - 1] for number in result.cited]
-            if any(
-                hit.filename == item.expected_file and squash(item.evidence or "") in squash(hit.text)
-                for hit in cited
-            ):
+            if any(is_expected(hit, item.expected_file, item.evidence) for hit in cited):
                 correct += 1
+            else:
+                problems.append(
+                    f"WRONG CITATION      coverage={best:.2f} expected passage retrieved={retrieved_text}  {question}"
+                )
+        elif result.status != "passages_only":
+            problems.append(f"{result.status.upper():<19} coverage={best:.2f}  {question}")
 
     total_answerable = sum(answerable.values())
     total_unanswerable = sum(unanswerable.values())
@@ -78,6 +119,29 @@ def main() -> None:
     else:
         print(f"Answered with the right passage cited:   {correct}/{total_answerable}")
         print(f"Unanswerable but answered anyway:        {unanswerable['answered']}/{total_unanswerable}")
+
+    refused = answerable["not_found"]
+    if refused:
+        print("\nWhy the false refusals happened")
+        print(f"  Relevance gate closed (model never called): {refusal_reasons['gate']}/{refused}")
+        print(f"  Model replied INSUFFICIENT_INFORMATION:     {refusal_reasons['model']}/{refused}")
+        print(f"  Expected passage was among those retrieved: {refused_but_retrieved}/{refused}")
+
+    if problems:
+        print("\nEvery problem case:")
+        for line in problems:
+            print("  " + line)
+
+    print("\nGate-only sweep (no model involved): how many questions would pass the gate")
+    print("  threshold  answerable  unanswerable")
+    for threshold in THRESHOLDS:
+        passing_answerable = sum(value >= threshold for value in answerable_coverage)
+        passing_unanswerable = sum(value >= threshold for value in unanswerable_coverage)
+        print(
+            f"  {threshold:<9.1f}  {passing_answerable:>2}/{len(answerable_coverage):<7}"
+            f"  {passing_unanswerable:>2}/{len(unanswerable_coverage)}"
+        )
+    print("  You want answerable high and unanswerable low. Passing the gate does not mean the right passage was found.")
 
 
 if __name__ == "__main__":
